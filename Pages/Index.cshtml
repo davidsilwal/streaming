@@ -1,0 +1,109 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<button id="processbtn" class="btn btn-primary">HubContext</button>
+
+<br />
+
+<button id="streambtn" class="btn btn-primary" style="margin-top:5px;">Streaming</button>
+<br />
+
+<button id="autostreambtn" class="btn btn-primary" style="margin-top:5px;">Auto Streaming</button>
+
+<div class="col-6">
+    <ul id="messagesList"></ul>
+</div>
+
+
+@section Scripts{
+    <script src="~/lib/@@microsoft/signalr/dist/browser/signalr.min.js"></script>
+
+    <script>
+        (async function () {
+
+            document.getElementById('processbtn').onclick = function () {
+
+                fetch("/Index?handler=Process")
+                    .then(function () {
+                        // Handle response you get from the server
+                    });
+
+            }
+
+            document.getElementById('autostreambtn').onclick = function () {
+
+                fetch("/Index?handler=Stream")
+                    .then(function () {
+                        // Handle response you get from the server
+                    });
+
+            }
+
+
+            let connection = new signalR.HubConnectionBuilder()
+                .withUrl('/notification')
+                .configureLogging(signalR.LogLevel.Information)
+                .build();
+
+
+            connection.on("notify", data => {
+                var li = document.createElement('li');
+                li.innerText = data;
+                document.getElementById("messagesList").appendChild(li);
+            });
+
+
+            document.getElementById('streambtn').addEventListener('click', () => {
+
+                connection.stream("TryStream")
+                    .subscribe({
+                        next: (item) => {
+                            var li = document.createElement("li");
+                            li.textContent = item;
+                            document.getElementById("messagesList").appendChild(li);
+                        },
+                        complete: () => {
+                            var li = document.createElement("li");
+                            li.textContent = "Stream completed";
+                            document.getElementById("messagesList").appendChild(li);
+                        },
+                        error: (err) => {
+                            var li = document.createElement("li");
+                            li.textContent = err;
+                            document.getElementById("messagesList").appendChild(li);
+                        },
+                    });
+
+            });
+
+
+            connection.on("initiatestream", () => {
+                connection.stream("TryAutoStream")
+                    .subscribe({
+                        next: (item) => {
+                            var li = document.createElement("li");
+                            li.textContent = item;
+                            document.getElementById("messagesList").appendChild(li);
+                        },
+                        complete: () => {
+                            var li = document.createElement("li");
+                            li.textContent = "Stream completed";
+                            document.getElementById("messagesList").appendChild(li);
+                        },
+                        error: (err) => {
+                            var li = document.createElement("li");
+                            li.textContent = err;
+                            document.getElementById("messagesList").appendChild(li);
+                        },
+                    });
+            });
+
+
+            await connection.start();
+        })();
+    </script>
+
+}
